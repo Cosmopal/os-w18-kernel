@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
-
+#include <linux/list.h>
 #include <linux/export.h>
 #include <linux/mm.h>
 #include <linux/utsname.h>
@@ -2382,3 +2382,49 @@ COMPAT_SYSCALL_DEFINE1(sysinfo, struct compat_sysinfo __user *, info)
 	return 0;
 }
 #endif /* CONFIG_COMPAT */
+
+int max_srt_tasks = 15;
+unsigned long max_srt_req = 5000000000;
+struct my_srt_task *srt_tasks_list_head;
+//srt_tasks_list_head = {.list = LIST_HEAD_INIT(srt_tasks_list_head.list),};
+
+SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
+{
+	struct task_struct *task;
+	struct my_srt_task temp_srt_task;
+	if (srt_tasks_list_head == NULL){
+		srt_tasks_list_head = kmalloc (sizeof(*srt_tasks_list_head), GFP_KERNEL);	
+		INIT_LIST_HEAD(&srt_tasks_list_head->list);
+	}
+
+	task = find_task_by_vpid(pid);
+	if (task==NULL){
+		printk(KERN_DEBUG "rtnice: task with pid %d not found", pid);
+		return -ESRCH;
+	}
+	if (num_srt_tasks >= max_srt_tasks){
+		return -EAGAIN;
+	}
+	if (ns_timeslice<1 || ns_timeslice > max_srt_req){
+		printk(KERN_DEBUG "rtnice: invalid argument for ns_timeslice - %ld",ns_timeslice);
+		return -EINVAL;
+	}
+	if (task->SRT_FLAG == 0){ 
+		//task->srt_req = ns_timeslice;
+		task->SRT_FLAG = 1;
+		num_srt_tasks = num_srt_tasks + 1;
+		//srt_tasks[num_srt_tasks] = task;
+		temp_srt_task.pid = pid;
+		temp_srt_task.my_task_struct = task;
+		temp_srt_task.ns_timeslice = ns_timeslice;
+		INIT_LIST_HEAD(&temp_srt_task.list);
+
+		task->srt_task_struct = &temp_srt_task;
+		list_add(&task->srt_task_struct->list,&srt_tasks_list_head->list);
+	}
+	task->srt_req = ns_timeslice;
+	task->srt_task_struct->ns_timeslice = ns_timeslice;
+	printk(KERN_DEBUG "Updated srt_tasks list");
+	return 0;
+
+}	

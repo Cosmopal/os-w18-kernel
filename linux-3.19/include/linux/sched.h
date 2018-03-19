@@ -11,7 +11,7 @@ struct sched_param {
 };
 
 #include <asm/param.h>	/* for HZ */
-
+#include <linux/list.h>
 #include <linux/capability.h>
 #include <linux/threads.h>
 #include <linux/kernel.h>
@@ -1271,6 +1271,22 @@ enum perf_event_task_context {
 	perf_nr_task_contexts,
 };
 
+
+extern int max_srt_tasks;
+extern unsigned long max_srt_req;
+//extern struct task_struct* srt_tasks[max_srt_tasks];
+extern int num_srt_tasks;
+extern struct my_srt_task {
+	pid_t pid;
+	struct task_struct *my_task_struct;
+	unsigned long ns_timeslice;
+	struct list_head list;
+}my_task_struct;
+
+extern struct my_srt_task *srt_tasks_list_head;
+
+
+
 struct task_struct {
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	void *stack;
@@ -1701,6 +1717,9 @@ struct task_struct {
 #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
 	unsigned long	task_state_change;
 #endif
+	unsigned long	srt_req;
+	int SRT_FLAG;
+	struct my_srt_task *srt_task_struct;
 };
 
 /* Future-safe accessor for struct task_struct's cpus_allowed. */
@@ -3075,8 +3094,7 @@ static inline unsigned long rlimit(unsigned int limit)
 }
 
 static inline unsigned long rlimit_max(unsigned int limit)
-{
-	return task_rlimit_max(current, limit);
+{	return task_rlimit_max(current, limit);
 }
 
 #endif
