@@ -5011,26 +5011,26 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev)
 
 
 //TODO: Change update_curr
-printk(KERN_DEBUG "num_srt_tasks = %d",num_srt_tasks);
 if (num_srt_tasks > 0 && srt_tasks_list_head != NULL){
 	unsigned long min_diff = max_srt_req;
 	unsigned long curr_diff = min_diff;
 	struct my_srt_task *pos_task, *next_task, *ans_task;
 	//struct task_struct temp_ts;
 	struct pid *pid_struct; 
+	printk(KERN_NOTICE "num_srt_tasks = %d",num_srt_tasks);
 	list_for_each_entry_safe(pos_task, next_task, &srt_tasks_list_head->list, list){
 		//check if the task still exists:
 		pid_struct = find_get_pid(pos_task->pid);
 		if (pid_struct == NULL){
 			//remove this process.
-			printk(KERN_DEBUG "task %d doesn't exist (anymore)",pos_task->pid);
+			printk(KERN_NOTICE "task %d doesn't exist (anymore)",pos_task->pid);
 			list_del(&pos_task->list);
 			//free(pos_task);
 			num_srt_tasks = num_srt_tasks - 1;
 		}
 		else{	
 			curr_diff = pos_task->ns_timeslice - pos_task->my_task_struct->se.sum_exec_runtime;
-			printk(KERN_DEBUG "curr diff = %lu, min_diff = %lu",curr_diff, min_diff);
+			printk(KERN_NOTICE "curr diff = %lu, min_diff = %lu",curr_diff, min_diff);
 			// if curr_diff < 0, means srt_req fullfilled.
 			if (curr_diff < 0){
 				list_del(&pos_task->list);
@@ -5045,9 +5045,9 @@ if (num_srt_tasks > 0 && srt_tasks_list_head != NULL){
 	}
 	/*If num_srt_tasks <=0 means all tasks in list completed
 	and removed during the loop*/
-	printk(KERN_DEBUG "loop ended, num_srt_tasks = %d",num_srt_tasks);
+	printk(KERN_NOTICE "loop ended, num_srt_tasks = %d",num_srt_tasks);
 	if (num_srt_tasks > 0){
-		printk(KERN_DEBUG "ans_task pid = %d",ans_task->pid);
+		printk(KERN_NOTICE "ans_task pid = %d",ans_task->pid);
 		if (prev!=ans_task->my_task_struct){
 			put_prev_task(rq, prev);
 		} 

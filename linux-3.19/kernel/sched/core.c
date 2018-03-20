@@ -1995,6 +1995,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 #endif
 
 	put_cpu();
+	p->SRT_FLAG = 0;
+	p->srt_req = 0;
 	return 0;
 }
 

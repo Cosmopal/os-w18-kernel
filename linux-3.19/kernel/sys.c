@@ -2392,6 +2392,7 @@ SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
 {
 	struct task_struct *task;
 	struct my_srt_task temp_srt_task;
+	printk(KERN_NOTICE "rtnice syscall called");
 	if (srt_tasks_list_head == NULL){
 		srt_tasks_list_head = kmalloc (sizeof(*srt_tasks_list_head), GFP_KERNEL);	
 		INIT_LIST_HEAD(&srt_tasks_list_head->list);
@@ -2399,14 +2400,14 @@ SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
 
 	task = find_task_by_vpid(pid);
 	if (task==NULL){
-		printk(KERN_DEBUG "rtnice: task with pid %d not found", pid);
+		printk(KERN_NOTICE "rtnice: task with pid %d not found", pid);
 		return -ESRCH;
 	}
 	if (num_srt_tasks >= max_srt_tasks){
 		return -EAGAIN;
 	}
 	if (ns_timeslice<1 || ns_timeslice > max_srt_req){
-		printk(KERN_DEBUG "rtnice: invalid argument for ns_timeslice - %ld",ns_timeslice);
+		printk(KERN_NOTICE "rtnice: invalid argument for ns_timeslice - %ld",ns_timeslice);
 		return -EINVAL;
 	}
 	if (task->SRT_FLAG == 0){ 
@@ -2424,7 +2425,7 @@ SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
 	}
 	task->srt_req = ns_timeslice;
 	task->srt_task_struct->ns_timeslice = ns_timeslice;
-	printk(KERN_DEBUG "Updated srt_tasks list");
+	printk(KERN_NOTICE "Updated srt_tasks list");
 	return 0;
 
 }	
