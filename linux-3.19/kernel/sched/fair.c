@@ -5008,29 +5008,33 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev)
 	struct sched_entity *se;
 	struct task_struct *p;
 	int new_tasks;
+	int have_srt_flag = 0;
 
 
 //TODO: Change update_curr
-if (num_srt_tasks > 0 && srt_tasks_list_head != NULL){
+/*if (num_srt_tasks > 0 && srt_tasks_list_head != NULL){
 	unsigned long min_diff = max_srt_req;
 	unsigned long curr_diff = min_diff;
 	struct my_srt_task *pos_task, *next_task, *ans_task;
 	//struct task_struct temp_ts;
 	struct pid *pid_struct; 
-	printk(KERN_NOTICE "num_srt_tasks = %d",num_srt_tasks);
+	printk(KERN_EMERG "num_srt_tasks = %d\n",num_srt_tasks);
 	list_for_each_entry_safe(pos_task, next_task, &srt_tasks_list_head->list, list){
 		//check if the task still exists:
+		printk(KERN_EMERG "the next task in iteration, my_srt_task struct pid = %d\n",pos_task->pid);
+		printk(KERN_EMERG "the task_struct pointer = %p",pos_task->my_task_struct);
 		pid_struct = find_get_pid(pos_task->pid);
 		if (pid_struct == NULL){
 			//remove this process.
-			printk(KERN_NOTICE "task %d doesn't exist (anymore)",pos_task->pid);
-			list_del(&pos_task->list);
+			printk(KERN_EMERG "task %d doesn't exist (anymore)\n",pos_task->pid);
+		//	list_del(&pos_task->list);
 			//free(pos_task);
 			num_srt_tasks = num_srt_tasks - 1;
 		}
 		else{	
-			curr_diff = pos_task->ns_timeslice - pos_task->my_task_struct->se.sum_exec_runtime;
-			printk(KERN_NOTICE "curr diff = %lu, min_diff = %lu",curr_diff, min_diff);
+			printk(KERN_EMERG "the next task in iteration has pid = %d\n",pos_task->pid);
+			*//*curr_diff = pos_task->ns_timeslice - pos_task->my_task_struct->se.sum_exec_runtime;
+			printk(KERN_EMERG "curr diff = %lu, min_diff = %lu",curr_diff, min_diff);
 			// if curr_diff < 0, means srt_req fullfilled.
 			if (curr_diff < 0){
 				list_del(&pos_task->list);
@@ -5039,22 +5043,54 @@ if (num_srt_tasks > 0 && srt_tasks_list_head != NULL){
 			else if (curr_diff < min_diff){
 				ans_task = pos_task;
 				min_diff = curr_diff;
-			}
+			}*//*
 		}
 		
 	}
-	/*If num_srt_tasks <=0 means all tasks in list completed
-	and removed during the loop*/
-	printk(KERN_NOTICE "loop ended, num_srt_tasks = %d",num_srt_tasks);
+	*//*If num_srt_tasks <=0 means all tasks in list completed
+	and removed during the loop*//*
+	printk(KERN_EMERG "loop ended, num_srt_tasks = %d",num_srt_tasks);
 	if (num_srt_tasks > 0){
-		printk(KERN_NOTICE "ans_task pid = %d",ans_task->pid);
+		printk(KERN_EMERG "ans_task pid = %d",ans_task->pid);
 		if (prev!=ans_task->my_task_struct){
 			put_prev_task(rq, prev);
 		} 
 		return ans_task->my_task_struct;
-	}
+	}*//*
 	
+}*/
+
+if (SRT_TASK_IS_FLAG == 1){
+	struct task_struct *srt_task;
+	struct pid *pid_struct = find_get_pid(srt_task_pid);	
+	printk(KERN_EMERG "pick_task: SRT flag is one, pid = %d", srt_task_pid);
+	//srt_task = find_task_by_vpid(srt_task_pid);
+	srt_task = pid_task(pid_struct,PIDTYPE_PID);
+	printk(KERN_EMERG "found task", srt_task_pid);
+	if (srt_task != NULL && srt_task->state <=0){
+		printk(KERN_EMERG "srt_task_req = %lu, sum_exec_runtime = %lu\n",srt_task_req, srt_task->se.sum_exec_runtime);
+		printk(KERN_EMERG "diff =  in lu %lu",srt_task_req - srt_task->se.sum_exec_runtime);
+		printk(KERN_EMERG "diff =  in lu %llu",srt_task_req - srt_task->se.sum_exec_runtime);
+		printk(KERN_EMERG "diff =  in as lu %lu",srt_task_req - (unsigned long)srt_task->se.sum_exec_runtime);
+		printk(KERN_EMERG "diff =  in as llu %llu",(unsigned long long)srt_task_req - srt_task->se.sum_exec_runtime);
+		if (srt_task_req - (unsigned long)srt_task->se.sum_exec_runtime > 0){
+			//put_prev_task(rq, prev);
+			printk(KERN_EMERG "have srt_task");
+			//return srt_task;
+			/*have_srt_flag = 1;
+			p = srt_task;*/
+		}
+		else{
+			printk(KERN_EMERG "task with pid = %d already got srt reqs", srt_task_pid);
+			SRT_TASK_IS_FLAG = 0;
+		}
+	}
+	else{
+		printk(KERN_EMERG "task with pid = %d, doesn't exist",srt_task_pid);	
+		SRT_TASK_IS_FLAG = 0;
+	}
 }
+
 
 again:
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -5098,8 +5134,13 @@ again:
 		cfs_rq = group_cfs_rq(se);
 	} while (cfs_rq);
 
-	p = task_of(se);
-
+	if (have_srt_flag == 1){
+		se = &p->se;	
+		printk(KERN_WARNING "Override to return srt task pid = %d",srt_task_pid);
+	}
+	else{ 
+		p = task_of(se);
+	}
 	/*
 	 * Since we haven't yet done put_prev_entity and if the selected task
 	 * is a different task than we started out with, try and touch the
@@ -5107,6 +5148,8 @@ again:
 	 */
 	if (prev != p) {
 		struct sched_entity *pse = &prev->se;
+		if (have_srt_flag == 1)
+		printk(KERN_EMERG "prev!=p in again");
 
 		while (!(cfs_rq = is_same_group(se, pse))) {
 			int se_depth = se->depth;
@@ -5140,12 +5183,22 @@ simple:
 	put_prev_task(rq, prev);
 
 	do {
+		if (have_srt_flag == 1)
+		printk(KERN_EMERG "loop in simple");
 		se = pick_next_entity(cfs_rq, NULL);
 		set_next_entity(cfs_rq, se);
 		cfs_rq = group_cfs_rq(se);
 	} while (cfs_rq);
 
-	p = task_of(se);
+	//p = task_of(se);
+	
+	if (have_srt_flag == 1){
+		printk(KERN_WARNING "Override to return srt task pid = %d",srt_task_pid);
+		se = &p->se;
+	}
+	else{ 
+		p = task_of(se);
+	}
 
 	if (hrtick_enabled(rq))
 		hrtick_start_fair(rq, p);

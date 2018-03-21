@@ -1273,7 +1273,10 @@ enum perf_event_task_context {
 
 
 extern int max_srt_tasks;
+extern pid_t srt_task_pid;
+extern unsigned long srt_task_req;
 extern unsigned long max_srt_req;
+extern int SRT_TASK_IS_FLAG;
 //extern struct task_struct* srt_tasks[max_srt_tasks];
 extern int num_srt_tasks;
 extern struct my_srt_task {

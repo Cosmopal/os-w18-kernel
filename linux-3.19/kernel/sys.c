@@ -2386,34 +2386,41 @@ COMPAT_SYSCALL_DEFINE1(sysinfo, struct compat_sysinfo __user *, info)
 int max_srt_tasks = 15;
 unsigned long max_srt_req = 5000000000;
 struct my_srt_task *srt_tasks_list_head;
+unsigned long srt_task_req = 0;
+pid_t srt_task_pid = 0;
+int SRT_TASK_IS_FLAG = 0;
 //srt_tasks_list_head = {.list = LIST_HEAD_INIT(srt_tasks_list_head.list),};
 
 SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
 {
 	struct task_struct *task;
 	struct my_srt_task temp_srt_task;
-	printk(KERN_NOTICE "rtnice syscall called");
-	if (srt_tasks_list_head == NULL){
+	struct my_srt_task *temp_srt_task_2;
+	printk(KERN_EMERG "rtnice syscall called, pid = %d", pid);
+	//if (srt_tasks_list_head == NULL){
+	if (num_srt_tasks <= 0){
 		srt_tasks_list_head = kmalloc (sizeof(*srt_tasks_list_head), GFP_KERNEL);	
 		INIT_LIST_HEAD(&srt_tasks_list_head->list);
 	}
 
 	task = find_task_by_vpid(pid);
 	if (task==NULL){
-		printk(KERN_NOTICE "rtnice: task with pid %d not found", pid);
+		printk(KERN_EMERG "rtnice: task with pid %d not found", pid);
 		return -ESRCH;
 	}
 	if (num_srt_tasks >= max_srt_tasks){
+		printk(KERN_EMERG "num srt tasks = %d >= max srt tasks = %d",num_srt_tasks, max_srt_tasks);
 		return -EAGAIN;
 	}
 	if (ns_timeslice<1 || ns_timeslice > max_srt_req){
-		printk(KERN_NOTICE "rtnice: invalid argument for ns_timeslice - %ld",ns_timeslice);
+		printk(KERN_EMERG "rtnice: invalid argument for ns_timeslice - %ld",ns_timeslice);
 		return -EINVAL;
 	}
 	if (task->SRT_FLAG == 0){ 
 		//task->srt_req = ns_timeslice;
 		task->SRT_FLAG = 1;
 		num_srt_tasks = num_srt_tasks + 1;
+		printk(KERN_EMERG "now num_srt_tasks = %d",num_srt_tasks);
 		//srt_tasks[num_srt_tasks] = task;
 		temp_srt_task.pid = pid;
 		temp_srt_task.my_task_struct = task;
@@ -2422,10 +2429,21 @@ SYSCALL_DEFINE2(rtnice, pid_t, pid, unsigned long, ns_timeslice)
 
 		task->srt_task_struct = &temp_srt_task;
 		list_add(&task->srt_task_struct->list,&srt_tasks_list_head->list);
+		printk(KERN_EMERG "Created struct added to list check:\n");
+		printk(KERN_EMERG "task->srt_task_struct->pid = %d\n",task->srt_task_struct->pid);
+		printk(KERN_EMERG "list_entry(&srt_tasks_list_head->list.next,struct my_srt_task,list).pid = %d",
+		(list_entry(srt_tasks_list_head->list.next, struct my_srt_task,list))->pid);
+		
+		temp_srt_task_2 = list_entry(srt_tasks_list_head->list.next, struct my_srt_task, list);
+		
+		printk(KERN_EMERG "(temp_srt_task_2 = list_entry(&srt_tasks_list_head->list.next,struct my_srt_task,list).pid = %d", temp_srt_task_2->pid);
 	}
 	task->srt_req = ns_timeslice;
 	task->srt_task_struct->ns_timeslice = ns_timeslice;
-	printk(KERN_NOTICE "Updated srt_tasks list");
+	printk(KERN_EMERG "Updated srt_tasks list");
+	SRT_TASK_IS_FLAG = 1;
+	srt_task_req = ns_timeslice;
+	srt_task_pid = pid;
 	return 0;
 
 }	
