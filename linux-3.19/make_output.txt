@@ -1,0 +1,15 @@
+sh ./arch/x86/boot/install.sh 3.19.0 arch/x86/boot/bzImage \
+		System.map "/boot"
+run-parts: executing /etc/kernel/postinst.d/apt-auto-removal 3.19.0 /boot/vmlinuz-3.19.0
+run-parts: executing /etc/kernel/postinst.d/initramfs-tools 3.19.0 /boot/vmlinuz-3.19.0
+update-initramfs: Generating /boot/initrd.img-3.19.0
+run-parts: executing /etc/kernel/postinst.d/update-notifier 3.19.0 /boot/vmlinuz-3.19.0
+run-parts: executing /etc/kernel/postinst.d/zz-update-grub 3.19.0 /boot/vmlinuz-3.19.0
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-3.19.0
+Found initrd image: /boot/initrd.img-3.19.0
+Found linux image: /boot/vmlinuz-3.13.0-24-generic
+Found initrd image: /boot/initrd.img-3.13.0-24-generic
+Found memtest86+ image: /boot/memtest86+.elf
+Found memtest86+ image: /boot/memtest86+.bin
+done

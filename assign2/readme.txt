@@ -1,4 +1,4 @@
-this is the Readme for the assignment 2 part 2
+This is the Readme for the assignment 2 part 2
  Modifying CFS Scheduler submission, by
 Group ID - 
 Palash Aggrawal, 2016064
@@ -36,48 +36,23 @@ SRT information constants:
 	the include/sched.h file to store
 	information about SRT tasks
 
-	- srt_tasks array:
-	 stores at max 'max_srt_tasks'
-	 number of srt tasks.
+	- srt_task_pid	
+	  pid of the current task with
+	  srt priority.
 
-	- max_srt_tasks:
-	defines maximum number
-	of srt tasks that can run
+	- srt_task_req
+	  srt requirement of this task
 
-	- srt_tasks_list_head:
-	head node of linked list of
-	srt task structs
-
-	- srt_task:
-	a struct which is a node in 
-	the linked list, and has info
-	about srt_requirement of the
-	task, and the task struct of
-	the task.
+	- SRT_TASK_IS_FLAG
+	  whether there is a task that
+	  has any srt requirement.
 
 
-Changes to task_struct:
-	task_struct has extra fields:
-	- SRT_FLAG:
-	1 if the task has srt requirements
-	0 otherwise
-
-	- srt_task_struct:
-	pointer to the srt_task struct
-	holding info about srt requirements
-
-	- srt_req:
-	srt requirement of the task
 
 
 System Call:
 	A system call rtnice is defined
 	in kernel/sys.c.
-
-	sys.c also intialises the
-	list head of the linked list of
-	srt tasks, and also the max_srt_tasks
-	variable.
 
 
 Changes to fair.c:
@@ -91,17 +66,13 @@ Changes to fair.c:
 	System call:
 	
 	It takes input the pid of the task
-	and the srt requirement of that task
+	and the srt requirement of that task.
+	It validates the input and then sets
+	the global variables approriately.
 	It then sets the srt requirement of that
 	task by updating the srt_task struct 
 	associated with the task_struct of that
 	task.
-
-	It them, if necessary, adds the srt_struct
-	into the array and/or the linked list holding
-	information about all the tasks - 
-	srt_tasks and
-	srt_tasks_list_head.
 
 	It handles the following errors:
 	
@@ -113,7 +84,7 @@ Changes to fair.c:
 		EAGAIN
 
 	- timeslice requirement < 1
-	or > 5 seconds.
+	or > 100 seconds.
 		EINVAL
 
 
@@ -127,18 +98,17 @@ Changes to fair.c:
 	task has cfs_sched_class as its scheduler
 	class, which we assume is true for all processes.
 
+	First, the flag for srt requirements is checked.
+	If it is true, then that task is checked for its
+	requirements - whether it has already got them, 
+	by comparing the sum_exec_runtime of that tasks's
+	sched entity with the srt_req_ flag.
+	If it is already finished, then the global
+	flags are reset. If checks pass, then the variable
+	p is set to that task.
 
-	It checks the array/linked list for processes
-	having soft real time requirements. If there
-	exist such processes, it returns the process
-	which is closest to completing its srt 
-	requirement. Else, is goes on with its regular
-	operation.
-	
-	It compares the sum_exec_runtime in the se 
-	(sched_entity) field of the srt task's 
-	task_struct.
-
-	If there is a task in the list/array, which
-	is finished, then it removes it from the list
-	and decrements num_srt_tasks.
+	If a valid task was found in the above checks, then
+	the normal code of CFS proceeds normally, but in the 
+	end, the task which cfs was going to return is replaced
+	with the srt task. this is to ensure proper enqueue/dequeue
+	previous task and run queues.

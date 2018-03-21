@@ -5066,19 +5066,24 @@ if (SRT_TASK_IS_FLAG == 1){
 	printk(KERN_EMERG "pick_task: SRT flag is one, pid = %d", srt_task_pid);
 	//srt_task = find_task_by_vpid(srt_task_pid);
 	srt_task = pid_task(pid_struct,PIDTYPE_PID);
-	printk(KERN_EMERG "found task", srt_task_pid);
+	printk(KERN_EMERG "found task pid = %d", srt_task_pid);
+	printk(KERN_EMERG "state of srt_task = %ld",srt_task->state);
 	if (srt_task != NULL && srt_task->state <=0){
-		printk(KERN_EMERG "srt_task_req = %lu, sum_exec_runtime = %lu\n",srt_task_req, srt_task->se.sum_exec_runtime);
-		printk(KERN_EMERG "diff =  in lu %lu",srt_task_req - srt_task->se.sum_exec_runtime);
-		printk(KERN_EMERG "diff =  in lu %llu",srt_task_req - srt_task->se.sum_exec_runtime);
-		printk(KERN_EMERG "diff =  in as lu %lu",srt_task_req - (unsigned long)srt_task->se.sum_exec_runtime);
-		printk(KERN_EMERG "diff =  in as llu %llu",(unsigned long long)srt_task_req - srt_task->se.sum_exec_runtime);
-		if (srt_task_req - (unsigned long)srt_task->se.sum_exec_runtime > 0){
+		//printk(KERN_EMERG "srt_task_req = %lu, sum_exec_runtime = %lu\n",srt_task_req, srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff =  in lu %lu",srt_task_req - srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff =  in lu %llu",srt_task_req - srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff =  in as lu %lu",srt_task_req - (unsigned long)srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff =  in as llu %llu",(unsigned long long)srt_task_req - srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff req<sum = %d (as bool, as lu)",srt_task_req < (unsigned long)srt_task->se.sum_exec_runtime);
+		printk(KERN_EMERG "diff req<sum = %d (as bool, as llu)",(unsigned long long) srt_task_req < srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff req>sum = %d (as bool, as lu)",srt_task_req > (unsigned long)srt_task->se.sum_exec_runtime);
+		//printk(KERN_EMERG "diff req>sum = %d (as bool, as llu)",(unsigned long long) srt_task_req > srt_task->se.sum_exec_runtime);
+		if ((unsigned long long) srt_task_req > srt_task->se.sum_exec_runtime){
 			//put_prev_task(rq, prev);
 			printk(KERN_EMERG "have srt_task");
 			//return srt_task;
-			/*have_srt_flag = 1;
-			p = srt_task;*/
+			have_srt_flag = 1;
+			p = srt_task;
 		}
 		else{
 			printk(KERN_EMERG "task with pid = %d already got srt reqs", srt_task_pid);
@@ -5110,6 +5115,8 @@ again:
 
 	do {
 		struct sched_entity *curr = cfs_rq->curr;
+		//if (have_srt_flag == 1)
+		//	printk(KERN_EMERG "loop in again");
 
 		/*
 		 * Since we got here without doing put_prev_entity() we also
@@ -5136,7 +5143,7 @@ again:
 
 	if (have_srt_flag == 1){
 		se = &p->se;	
-		printk(KERN_WARNING "Override to return srt task pid = %d",srt_task_pid);
+		printk(KERN_WARNING "Override to return srt task pid = %d in again",srt_task_pid);
 	}
 	else{ 
 		p = task_of(se);
@@ -5149,7 +5156,7 @@ again:
 	if (prev != p) {
 		struct sched_entity *pse = &prev->se;
 		if (have_srt_flag == 1)
-		printk(KERN_EMERG "prev!=p in again");
+			printk(KERN_EMERG "prev!=p in again");
 
 		while (!(cfs_rq = is_same_group(se, pse))) {
 			int se_depth = se->depth;
@@ -5165,8 +5172,12 @@ again:
 			}
 		}
 
+		if (have_srt_flag == 1)
+			printk(KERN_EMERG "prev!=p in again ending");
 		put_prev_entity(cfs_rq, pse);
 		set_next_entity(cfs_rq, se);
+		if (have_srt_flag == 1)
+			printk(KERN_EMERG "prev!=p in again ended");
 	}
 
 	if (hrtick_enabled(rq))
@@ -5184,7 +5195,7 @@ simple:
 
 	do {
 		if (have_srt_flag == 1)
-		printk(KERN_EMERG "loop in simple");
+			printk(KERN_EMERG "loop in simple");
 		se = pick_next_entity(cfs_rq, NULL);
 		set_next_entity(cfs_rq, se);
 		cfs_rq = group_cfs_rq(se);
@@ -5193,7 +5204,7 @@ simple:
 	//p = task_of(se);
 	
 	if (have_srt_flag == 1){
-		printk(KERN_WARNING "Override to return srt task pid = %d",srt_task_pid);
+		printk(KERN_WARNING "Override to return srt task pid = %d in simple",srt_task_pid);
 		se = &p->se;
 	}
 	else{ 

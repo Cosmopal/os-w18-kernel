@@ -2384,7 +2384,7 @@ COMPAT_SYSCALL_DEFINE1(sysinfo, struct compat_sysinfo __user *, info)
 #endif /* CONFIG_COMPAT */
 
 int max_srt_tasks = 15;
-unsigned long max_srt_req = 5000000000;
+unsigned long max_srt_req = 100000000000;
 struct my_srt_task *srt_tasks_list_head;
 unsigned long srt_task_req = 0;
 pid_t srt_task_pid = 0;
